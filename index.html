@@ -3,318 +3,359 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>贪吃蛇</title>
+    <title>消消乐</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            background: #1a1a2e;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             font-family: 'Microsoft YaHei', sans-serif;
+            user-select: none;
         }
-
-        h1 {
-            color: #e94560;
-            margin-bottom: 10px;
-            font-size: 2.5rem;
-        }
-
-        .score-board {
-            color: #eee;
-            font-size: 1.2rem;
+        h1 { color: #fff; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); font-size: 2.2rem; }
+        .info-bar {
+            display: flex;
+            gap: 30px;
             margin-bottom: 15px;
+            color: #fff;
+            font-size: 1.1rem;
         }
-
-        .score-board span {
-            color: #e94560;
-            font-weight: bold;
-        }
-
+        .info-bar span { font-weight: bold; color: #ffeaa7; }
         #game-board {
-            border: 3px solid #e94560;
-            background: #16213e;
+            display: grid;
+            grid-template-columns: repeat(8, 50px);
+            grid-template-rows: repeat(8, 50px);
+            gap: 3px;
+            background: rgba(255,255,255,0.2);
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
         }
+        .cell {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+            position: relative;
+        }
+        .cell:hover { transform: scale(1.05); }
+        .cell.selected {
+            box-shadow: 0 0 0 3px #fff, 0 0 15px rgba(255,255,255,0.8);
+            transform: scale(1.1);
+            z-index: 10;
+        }
+        .cell.removing {
+            animation: pop 0.3s ease-out forwards;
+        }
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(0); opacity: 0; }
+        }
+        .cell.falling {
+            animation: fadeIn 0.3s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.5); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .candy-red { background: #e74c3c; box-shadow: inset 0 -5px 0 #c0392b; }
+        .candy-blue { background: #3498db; box-shadow: inset 0 -5px 0 #2980b9; }
+        .candy-green { background: #2ecc71; box-shadow: inset 0 -5px 0 #27ae60; }
+        .candy-yellow { background: #f1c40f; box-shadow: inset 0 -5px 0 #f39c12; }
+        .candy-purple { background: #9b59b6; box-shadow: inset 0 -5px 0 #8e44ad; }
+        .candy-orange { background: #e67e22; box-shadow: inset 0 -5px 0 #d35400; }
 
+        .candy-inner {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+        }
         .controls {
-            margin-top: 20px;
-            color: #aaa;
+            margin-top: 15px;
+            color: #fff;
             text-align: center;
+            font-size: 0.9rem;
             line-height: 1.8;
         }
-
-        .controls p {
-            margin: 5px 0;
-        }
-
-        #game-over {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.9);
-            padding: 40px;
-            border-radius: 10px;
-            text-align: center;
-            display: none;
-        }
-
-        #game-over h2 {
-            color: #e94560;
-            font-size: 2rem;
-            margin-bottom: 15px;
-        }
-
-        #game-over p {
-            color: #fff;
-            font-size: 1.2rem;
-            margin-bottom: 20px;
-        }
-
-        #game-over button {
+        .btn {
             padding: 10px 30px;
             font-size: 1rem;
-            background: #e94560;
-            color: #fff;
+            background: #ffeaa7;
+            color: #6c5ce7;
             border: none;
-            border-radius: 5px;
+            border-radius: 25px;
             cursor: pointer;
-            transition: background 0.3s;
+            font-weight: bold;
+            transition: all 0.3s;
+            margin: 5px;
         }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
 
-        #game-over button:hover {
-            background: #ff6b6b;
-        }
-
-        .mobile-controls {
+        #game-over {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
             display: none;
-            margin-top: 20px;
-        }
-
-        .mobile-controls .row {
-            display: flex;
+            align-items: center;
             justify-content: center;
-            gap: 10px;
-            margin: 5px 0;
+            flex-direction: column;
+            z-index: 100;
         }
+        #game-over h2 { font-size: 2.5rem; margin-bottom: 15px; }
+        #game-over p { color: #fff; font-size: 1.3rem; margin-bottom: 20px; }
+        .win { color: #2ecc71; }
+        .lose { color: #e74c3c; }
 
-        .mobile-controls button {
-            width: 60px;
-            height: 60px;
-            font-size: 1.5rem;
-            background: #0f3460;
-            color: #fff;
-            border: 2px solid #e94560;
-            border-radius: 10px;
-            cursor: pointer;
-        }
-
-        .mobile-controls button:active {
-            background: #e94560;
-        }
-
-        @media (max-width: 600px) {
-            .mobile-controls {
-                display: block;
+        @media (max-width: 450px) {
+            #game-board {
+                grid-template-columns: repeat(8, 40px);
+                grid-template-rows: repeat(8, 40px);
+                gap: 2px;
+                padding: 6px;
             }
+            .cell { width: 40px; height: 40px; }
+            .candy-inner { width: 24px; height: 24px; }
+            h1 { font-size: 1.8rem; }
+            .info-bar { gap: 15px; font-size: 1rem; }
         }
     </style>
 </head>
 <body>
-    <h1>贪吃蛇</h1>
-    <div class="score-board">得分: <span id="score">0</span></div>
-    <canvas id="game-board" width="400" height="400"></canvas>
+    <h1>🍬 消消乐</h1>
+    <div class="info-bar">
+        <div>得分: <span id="score">0</span></div>
+        <div>步数: <span id="moves">30</span></div>
+        <div>目标: <span id="target">500</span></div>
+    </div>
+    <div id="game-board"></div>
+    <div class="controls">
+        <p>点击两个相邻的糖果交换位置</p>
+        <p>三个或以上相同糖果连成一线即可消除</p>
+        <button class="btn" onclick="restartGame()">重新开始</button>
+    </div>
 
     <div id="game-over">
-        <h2>游戏结束!</h2>
+        <h2 id="result-title">游戏结束</h2>
         <p>最终得分: <span id="final-score">0</span></p>
-        <button onclick="restartGame()">重新开始</button>
-    </div>
-
-    <div class="controls">
-        <p>使用方向键 ↑ ↓ ← → 控制蛇的移动</p>
-        <p>按空格键暂停/继续</p>
-    </div>
-
-    <div class="mobile-controls">
-        <div class="row">
-            <button onclick="setDirection('up')">↑</button>
-        </div>
-        <div class="row">
-            <button onclick="setDirection('left')">←</button>
-            <button onclick="setDirection('down')">↓</button>
-            <button onclick="setDirection('right')">→</button>
-        </div>
+        <button class="btn" onclick="restartGame()">再玩一次</button>
     </div>
 
     <script>
-        const canvas = document.getElementById('game-board');
-        const ctx = canvas.getContext('2d');
-        const scoreElement = document.getElementById('score');
-        const gameOverScreen = document.getElementById('game-over');
-        const finalScoreElement = document.getElementById('final-score');
+        const ROWS = 8, COLS = 8;
+        const COLORS = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
+        const TARGET_SCORE = 500;
+        const MAX_MOVES = 30;
 
-        const gridSize = 20;
-        const tileCount = canvas.width / gridSize;
-
-        let snake = [
-            { x: 10, y: 10 }
-        ];
-        let food = { x: 15, y: 15 };
-        let dx = 0;
-        let dy = 0;
+        let board = [];
         let score = 0;
-        let gameRunning = true;
-        let gamePaused = false;
-        let gameLoop;
+        let moves = MAX_MOVES;
+        let selectedCell = null;
+        let isProcessing = false;
 
-        function drawGame() {
-            if (gamePaused) return;
+        function initBoard() {
+            board = [];
+            for (let r = 0; r < ROWS; r++) {
+                let row = [];
+                for (let c = 0; c < COLS; c++) {
+                    let color;
+                    do {
+                        color = COLORS[Math.floor(Math.random() * COLORS.length)];
+                    } while (
+                        (c >= 2 && row[c-1] === color && row[c-2] === color) ||
+                        (r >= 2 && board[r-1][c] === color && board[r-2][c] === color)
+                    );
+                    row.push(color);
+                }
+                board.push(row);
+            }
+            renderBoard();
+        }
 
-            // 移动蛇
-            const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+        function renderBoard() {
+            const container = document.getElementById('game-board');
+            container.innerHTML = '';
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = `cell candy-${board[r][c]}`;
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+                    cell.innerHTML = '<div class="candy-inner"></div>';
+                    cell.onclick = () => onCellClick(r, c);
+                    container.appendChild(cell);
+                }
+            }
+        }
 
-            // 检测撞墙
-            if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
-                gameOver();
+        function getCellElement(r, c) {
+            return document.querySelector(`.cell[data-row="${r}"][data-col="${c}"]`);
+        }
+
+        function onCellClick(r, c) {
+            if (isProcessing || moves <= 0) return;
+
+            if (!selectedCell) {
+                selectedCell = { r, c };
+                getCellElement(r, c).classList.add('selected');
                 return;
             }
 
-            // 检测撞到自己
-            for (let segment of snake) {
-                if (head.x === segment.x && head.y === segment.y) {
-                    gameOver();
-                    return;
-                }
+            const { r: sr, c: sc } = selectedCell;
+            getCellElement(sr, sc).classList.remove('selected');
+
+            if (sr === r && sc === c) {
+                selectedCell = null;
+                return;
             }
 
-            snake.unshift(head);
-
-            // 检测是否吃到食物
-            if (head.x === food.x && head.y === food.y) {
-                score += 10;
-                scoreElement.textContent = score;
-                generateFood();
-            } else {
-                snake.pop();
+            const dist = Math.abs(sr - r) + Math.abs(sc - c);
+            if (dist !== 1) {
+                selectedCell = { r, c };
+                getCellElement(r, c).classList.add('selected');
+                return;
             }
 
-            // 清空画布
-            ctx.fillStyle = '#16213e';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            selectedCell = null;
+            swapAndCheck(sr, sc, r, c);
+        }
 
-            // 绘制食物
-            ctx.fillStyle = '#e94560';
-            ctx.beginPath();
-            ctx.arc(
-                food.x * gridSize + gridSize / 2,
-                food.y * gridSize + gridSize / 2,
-                gridSize / 2 - 2,
-                0,
-                Math.PI * 2
-            );
-            ctx.fill();
+        async function swapAndCheck(r1, c1, r2, c2) {
+            isProcessing = true;
 
-            // 绘制蛇
-            for (let i = 0; i < snake.length; i++) {
-                if (i === 0) {
-                    ctx.fillStyle = '#00d9ff';
-                } else {
-                    ctx.fillStyle = '#0099cc';
+            [board[r1][c1], board[r2][c2]] = [board[r2][c2], board[r1][c1]];
+            updateCell(r1, c1);
+            updateCell(r2, c2);
+
+            const matches = findMatches();
+            if (matches.length === 0) {
+                await sleep(300);
+                [board[r1][c1], board[r2][c2]] = [board[r2][c2], board[r1][c1]];
+                updateCell(r1, c1);
+                updateCell(r2, c2);
+                isProcessing = false;
+                return;
+            }
+
+            moves--;
+            document.getElementById('moves').textContent = moves;
+            await processMatches();
+
+            if (moves <= 0 || score >= TARGET_SCORE) {
+                gameOver();
+            }
+            isProcessing = false;
+        }
+
+        function updateCell(r, c) {
+            const el = getCellElement(r, c);
+            el.className = `cell candy-${board[r][c]}`;
+            el.innerHTML = '<div class="candy-inner"></div>';
+        }
+
+        function findMatches() {
+            const matches = new Set();
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS - 2; c++) {
+                    const color = board[r][c];
+                    if (!color) continue;
+                    if (board[r][c+1] === color && board[r][c+2] === color) {
+                        matches.add(`${r},${c}`);
+                        matches.add(`${r},${c+1}`);
+                        matches.add(`${r},${c+2}`);
+                    }
                 }
-                ctx.fillRect(
-                    snake[i].x * gridSize + 1,
-                    snake[i].y * gridSize + 1,
-                    gridSize - 2,
-                    gridSize - 2
-                );
+            }
+            for (let c = 0; c < COLS; c++) {
+                for (let r = 0; r < ROWS - 2; r++) {
+                    const color = board[r][c];
+                    if (!color) continue;
+                    if (board[r+1][c] === color && board[r+2][c] === color) {
+                        matches.add(`${r},${c}`);
+                        matches.add(`${r+1},${c}`);
+                        matches.add(`${r+2},${c}`);
+                    }
+                }
+            }
+            return Array.from(matches).map(s => {
+                const [r, c] = s.split(',').map(Number);
+                return { r, c };
+            });
+        }
+
+        async function processMatches() {
+            let matches = findMatches();
+            while (matches.length > 0) {
+                for (const { r, c } of matches) {
+                    getCellElement(r, c).classList.add('removing');
+                }
+                score += matches.length * 10;
+                if (matches.length >= 4) score += 20;
+                if (matches.length >= 5) score += 50;
+                document.getElementById('score').textContent = score;
+                await sleep(300);
+
+                for (const { r, c } of matches) board[r][c] = null;
+                await dropAndFill();
+                await sleep(300);
+                matches = findMatches();
             }
         }
 
-        function generateFood() {
-            do {
-                food = {
-                    x: Math.floor(Math.random() * tileCount),
-                    y: Math.floor(Math.random() * tileCount)
-                };
-            } while (snake.some(segment => segment.x === food.x && segment.y === food.y));
+        async function dropAndFill() {
+            for (let c = 0; c < COLS; c++) {
+                let writeRow = ROWS - 1;
+                for (let r = ROWS - 1; r >= 0; r--) {
+                    if (board[r][c] !== null) {
+                        if (r !== writeRow) {
+                            board[writeRow][c] = board[r][c];
+                            board[r][c] = null;
+                        }
+                        writeRow--;
+                    }
+                }
+                for (let r = writeRow; r >= 0; r--) {
+                    board[r][c] = COLORS[Math.floor(Math.random() * COLORS.length)];
+                }
+            }
+            renderBoard();
+            document.querySelectorAll('.cell').forEach(el => el.classList.add('falling'));
         }
 
         function gameOver() {
-            gameRunning = false;
-            clearInterval(gameLoop);
-            finalScoreElement.textContent = score;
-            gameOverScreen.style.display = 'block';
+            const screen = document.getElementById('game-over');
+            const title = document.getElementById('result-title');
+            if (score >= TARGET_SCORE) {
+                title.textContent = '🎉 恭喜通关!';
+                title.className = 'win';
+            } else {
+                title.textContent = '游戏结束';
+                title.className = 'lose';
+            }
+            document.getElementById('final-score').textContent = score;
+            screen.style.display = 'flex';
         }
 
         function restartGame() {
-            snake = [{ x: 10, y: 10 }];
-            food = { x: 15, y: 15 };
-            dx = 0;
-            dy = 0;
-            score = 0;
-            scoreElement.textContent = score;
-            gameRunning = true;
-            gamePaused = false;
-            gameOverScreen.style.display = 'none';
-            gameLoop = setInterval(drawGame, 100);
+            score = 0; moves = MAX_MOVES; selectedCell = null; isProcessing = false;
+            document.getElementById('score').textContent = score;
+            document.getElementById('moves').textContent = moves;
+            document.getElementById('game-over').style.display = 'none';
+            initBoard();
         }
 
-        function setDirection(direction) {
-            if (!gameRunning || gamePaused) return;
+        function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-            switch (direction) {
-                case 'up':
-                    if (dy !== 1) { dx = 0; dy = -1; }
-                    break;
-                case 'down':
-                    if (dy !== -1) { dx = 0; dy = 1; }
-                    break;
-                case 'left':
-                    if (dx !== 1) { dx = -1; dy = 0; }
-                    break;
-                case 'right':
-                    if (dx !== -1) { dx = 1; dy = 0; }
-                    break;
-            }
-        }
-
-        document.addEventListener('keydown', (e) => {
-            if (!gameRunning) return;
-
-            switch (e.key) {
-                case 'ArrowUp':
-                    e.preventDefault();
-                    setDirection('up');
-                    break;
-                case 'ArrowDown':
-                    e.preventDefault();
-                    setDirection('down');
-                    break;
-                case 'ArrowLeft':
-                    e.preventDefault();
-                    setDirection('left');
-                    break;
-                case 'ArrowRight':
-                    e.preventDefault();
-                    setDirection('right');
-                    break;
-                case ' ':
-                    e.preventDefault();
-                    gamePaused = !gamePaused;
-                    break;
-            }
-        });
-
-        // 开始游戏
-        gameLoop = setInterval(drawGame, 100);
+        initBoard();
     </script>
 </body>
 </html>
